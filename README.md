@@ -1,9 +1,6 @@
 ﻿<p align="center">
   <img src="assets/logo.png" alt="terrCAIn Logo" width="250">
 </p>
-
-<h1 align="center">terrCAIn</h1>
-
 <p align="center">
 AI-Powered Emergent Terrain Generation using Cellular Automata
 </p>
