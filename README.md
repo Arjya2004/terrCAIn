@@ -1,18 +1,42 @@
 ﻿# terrCAIn
 
-**AI-Powered Emergent Terrain Generation using Cellular Automata**
+## AI-Powered Emergent Terrain Generation using Cellular Automata
 
-terrCAIn is a Microsoft AI-powered creative app built with Streamlit. It uses Azure OpenAI to translate natural-language terrain descriptions into Cellular Automata simulation parameters, evolves the landscape through local cell interactions, and renders the result as a voxel terrain where each visible column corresponds to one CA cell.
+terrCAIn is an AI-powered creative application built with Streamlit that transforms natural-language terrain descriptions into emergent voxel-based 3D landscapes. The system combines AI-assisted terrain planning with Cellular Automata simulation to generate explainable procedural terrains.
+
+Users can describe landscapes in plain English, such as:
+
+* Generate a volcanic island with steep cliffs
+* Create rolling hills with gentle valleys
+* Generate a rugged mountain range
+* Create a deep canyon with sharp ridges
+
+terrCAIn interprets the prompt, generates terrain parameters, evolves a Cellular Automata simulation, and visualizes the resulting landscape as an interactive voxel terrain.
+
+The application supports Azure OpenAI integration when configured and automatically falls back to a built-in local terrain planner when cloud services are unavailable.
+
+---
 
 ## Features
 
-- Natural language terrain input
-- Azure OpenAI terrain planning with JSON parameter validation and safe fallbacks
-- Five terrain presets: Volcano, Island, Mountain Range, Canyon, Rolling Hills
-- 100x100 cellular automata terrain generation
-- Interactive Plotly voxel visualization with one block column per CA cell
-- AI Terrain Planner reasoning panel
-- Automatic terrain explanation panel
+* Natural language terrain generation
+* Local AI terrain planner
+* Optional Azure OpenAI integration
+* Five terrain types:
+
+  * Volcano
+  * Island
+  * Mountain Range
+  * Canyon
+  * Rolling Hills
+* 100×100 Cellular Automata terrain simulation
+* Interactive voxel-based 3D visualization
+* AI Terrain Planner reasoning panel
+* Explainable terrain generation workflow
+* CSV heightmap export
+* PNG heightmap export
+
+---
 
 ## Project Structure
 
@@ -29,63 +53,139 @@ terrCAIn/
 │   ├── terrain_generator.py
 │   └── terrain_presets.py
 ├── visualization/
-│   └── plotly_terrain.py
+│   ├── plotly_terrain.py
+│   └── terrain_export.py
 ├── README.md
 └── requirements.txt
 ```
+
+---
 
 ## Architecture
 
 ```mermaid
 flowchart TD
-    A["User Prompt"] --> B["Azure OpenAI Terrain Planner"]
-    B --> C["Validated Terrain Plan JSON"]
-    C --> D["CA Parameter Synthesis"]
-    D --> E["Cellular Automata Engine"]
-    E --> F["100x100 Heightmap"]
-    F --> G["Voxel Plotly Renderer"]
-    G --> H["Streamlit Creative App"]
+    A["User Prompt"] --> B["AI Terrain Planner"]
+    B --> C["Validated Terrain Parameters"]
+    C --> D["Cellular Automata Engine"]
+    D --> E["100x100 Heightmap"]
+    E --> F["Voxel Terrain Renderer"]
+    E --> G["CSV / PNG Export"]
+    F --> H["Interactive Streamlit App"]
 ```
 
-## Azure OpenAI Integration
+---
 
-The `ai/terrain_planner.py` module sends the user prompt to Azure OpenAI and asks the model to return only JSON with:
+## AI Terrain Planning
 
-- `terrain_type`
-- `iterations`
-- `noise_level`
-- `smoothing_factor`
-- `peak_bias`
-- `center_bias`
-- `reasoning`
+terrCAIn supports two planning modes:
 
-The app validates every returned field, clamps values to safe ranges, and falls back to deterministic defaults if the model output is invalid or Azure credentials are missing.
+### Local Terrain Planner
+
+* Works without internet access or API keys
+* Detects terrain types from natural-language prompts
+* Generates Cellular Automata parameters and reasoning
+* Provides fully offline functionality
+
+### Azure OpenAI Planner
+
+* Optional cloud-based AI planning
+* Converts natural-language descriptions into terrain-generation parameters
+* Automatically used when Azure credentials are configured
+
+Both planning modes generate validated Cellular Automata parameters that drive terrain generation.
+
+Generated parameters include:
+
+* terrain_type
+* iterations
+* noise_level
+* smoothing_factor
+* peak_bias
+* center_bias
+* reasoning
+
+---
 
 ## Cellular Automata Pipeline
 
-1. The user enters a terrain description such as `Generate a large volcanic island with steep cliffs`.
-2. Azure OpenAI plans the terrain and returns CA-oriented parameters.
-3. The planner maps those parameters onto the existing terrain preset architecture.
-4. The CA engine evolves a `100x100` grid using Moore-neighborhood smoothing and bias masks.
-5. The normalized heightmap is converted into block heights for voxel rendering.
-6. The final terrain is shown as block columns so the underlying CA grid remains visible.
+1. The user enters a terrain description.
+2. The AI Terrain Planner interprets the prompt.
+3. Terrain-generation parameters are created and validated.
+4. A 100×100 Cellular Automata grid evolves through neighborhood interactions.
+5. A terrain heightmap emerges from the simulation.
+6. The heightmap is converted into voxel terrain columns.
+7. The terrain is rendered interactively.
+8. Users can export generated terrains as CSV or PNG heightmaps.
+
+---
+
+## Example Terrain Types
+
+### Volcano
+
+* Strong central elevation
+* High peak bias
+* Steep slopes and volcanic formations
+
+### Island
+
+* Elevated center
+* Lower surrounding edges
+* Creates island-like terrain structures
+
+### Mountain Range
+
+* Multiple peaks and ridges
+* High elevation variation
+* Rugged terrain appearance
+
+### Canyon
+
+* Deep valleys and sharp ridges
+* Strong terrain contrast
+* Reduced smoothing
+
+### Rolling Hills
+
+* Gentle elevation changes
+* Smooth terrain transitions
+* Balanced terrain generation parameters
+
+---
 
 ## Voxel Visualization
 
-- Each CA cell becomes one `1x1` terrain column.
-- Column height is derived from the cell value and quantized into visible voxel steps.
-- Every column is rendered as a solid block prism anchored to the base plane.
-- No smooth surface interpolation is used.
-- Grid-aligned outlines make the CA structure easy to inspect visually.
+* Each Cellular Automata cell corresponds to one visible terrain column
+* Each column occupies a 1×1 footprint on the terrain grid
+* Column height is derived directly from the generated heightmap
+* Every column grows from the base plane
+* No smooth surface interpolation is used
+* The underlying Cellular Automata structure remains visible
+
+---
 
 ## Terrain Export
 
 terrCAIn supports exporting generated terrains as:
 
-- CSV Heightmaps
-- PNG Heightmaps
+### CSV Heightmaps
 
-These exports can be used in external visualization tools, simulations, and game-development workflows.
+Stores the complete terrain heightmap as numerical data.
+
+### PNG Heightmaps
+
+Exports the terrain as a grayscale heightmap image suitable for visualization and further processing.
+
+Exported terrains can be used in:
+
+* Procedural generation workflows
+* Simulations
+* Research projects
+* Terrain analysis pipelines
+* Game-development workflows
+
+---
 
 ## Running Locally
 
@@ -98,7 +198,7 @@ python -m venv .venv
 .venv\Scripts\Activate.ps1
 ```
 
-### 2. Configure Azure OpenAI
+### 2. Configure Azure OpenAI (Optional)
 
 ```powershell
 $env:AZURE_OPENAI_ENDPOINT="https://YOUR-RESOURCE-NAME.openai.azure.com"
@@ -106,13 +206,15 @@ $env:AZURE_OPENAI_API_KEY="YOUR_AZURE_OPENAI_KEY"
 $env:AZURE_OPENAI_DEPLOYMENT="YOUR_MODEL_DEPLOYMENT_NAME"
 ```
 
+If Azure credentials are not provided, terrCAIn automatically uses the built-in local terrain planner.
+
 ### 3. Install dependencies
 
 ```powershell
 pip install -r requirements.txt
 ```
 
-### 4. Run the app
+### 4. Run the application
 
 ```powershell
 streamlit run app.py
@@ -120,42 +222,24 @@ streamlit run app.py
 
 Then open the local URL shown by Streamlit in your browser.
 
-## Planner Output Example
-
-Example prompt:
-
-```text
-Generate a large volcanic island with steep cliffs
-```
-
-Example planner JSON:
-
-```json
-{
-  "terrain_type": "volcano",
-  "iterations": 50,
-  "noise_level": 0.18,
-  "smoothing_factor": 0.25,
-  "peak_bias": 0.95,
-  "center_bias": 0.90,
-  "reasoning": [
-    "Detected volcanic terrain.",
-    "Increased central elevation.",
-    "Reduced smoothing for sharper cliffs.",
-    "Raised iteration count to deepen terrain evolution."
-  ]
-}
-```
+---
 
 ## Example Prompts
 
-- `Generate a volcanic island`
-- `Create rolling hills`
-- `Generate a mountain range`
-- `Create a canyon`
+* Generate a volcanic island with steep cliffs
+* Create rolling hills with gentle valleys
+* Generate a rugged mountain range
+* Create a deep canyon with sharp ridges
+* Generate a tropical island surrounded by water
+
+---
 
 ## Hackathon Notes
 
-- The CA engine remains modular and deterministic for reproducible demos.
-- The planner preserves the current architecture by synthesizing Azure-generated parameters into the existing preset pipeline.
-- If Azure OpenAI is unavailable, terrCAIn still runs with safe default parameters so the demo remains usable.
+* AI is used as a terrain-planning layer rather than directly generating geometry.
+* Cellular Automata drive the actual terrain formation process.
+* The system remains deterministic and reproducible.
+* Azure OpenAI integration is supported but not required.
+* Local AI planning guarantees offline functionality.
+* Terrain export improves interoperability with external tools and workflows.
+* Each visible voxel column directly corresponds to a Cellular Automata cell, preserving explainability and transparency of the simulation.
