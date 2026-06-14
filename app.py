@@ -6,6 +6,7 @@ from ai.explanation_generator import generate_explanation
 from ai.terrain_planner import plan_terrain
 from core.terrain_generator import generate_terrain
 from visualization.plotly_terrain import create_terrain_figure
+from visualization.terrain_export import heightmap_to_csv_bytes, heightmap_to_png_bytes
 
 
 st.set_page_config(page_title="terrCAIn", page_icon="🏔️", layout="wide")
@@ -36,7 +37,9 @@ def main() -> None:
                 title=f"{planner_result.terrain_label} Terrain",
             )
 
-        if planner_result.source != "azure_openai":
+        if planner_result.source == "local_planner":
+            st.info(planner_result.status_message)
+        elif planner_result.source != "azure_openai":
             st.warning(planner_result.status_message)
         else:
             st.success(planner_result.status_message)
@@ -68,6 +71,32 @@ def main() -> None:
 
         st.markdown("### Interactive Voxel Terrain")
         st.plotly_chart(figure, use_container_width=True)
+
+        csv_heightmap = heightmap_to_csv_bytes(terrain_result.heightmap)
+        png_heightmap = heightmap_to_png_bytes(terrain_result.heightmap)
+
+        st.markdown("### Export Terrain")
+        st.write(
+            "Export generated terrains for use in game engines, simulations, procedural workflows, and terrain analysis."
+        )
+
+        export_csv_col, export_png_col = st.columns(2)
+
+        with export_csv_col:
+            st.download_button(
+                label="Download CSV Heightmap",
+                data=csv_heightmap,
+                file_name="terrain_heightmap.csv",
+                mime="text/csv",
+            )
+
+        with export_png_col:
+            st.download_button(
+                label="Download PNG Heightmap",
+                data=png_heightmap,
+                file_name="terrain_heightmap.png",
+                mime="image/png",
+            )
 
 
 if __name__ == "__main__":

@@ -78,6 +78,15 @@ The app validates every returned field, clamps values to safe ranges, and falls 
 - No smooth surface interpolation is used.
 - Grid-aligned outlines make the CA structure easy to inspect visually.
 
+## Terrain Export
+
+terrCAIn supports exporting generated terrains as:
+
+- CSV Heightmaps
+- PNG Heightmaps
+
+These exports can be used in external visualization tools, simulations, and game-development workflows.
+
 ## Running Locally
 
 ### 1. Create and activate a virtual environment

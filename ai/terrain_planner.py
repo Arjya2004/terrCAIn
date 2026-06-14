@@ -18,6 +18,50 @@ DEFAULT_CENTER_BIAS = {
     "canyon": 0.2,
     "hills": 0.35,
 }
+LOCAL_KEYWORDS = {
+    "volcano": ("volcano", "volcanic", "crater", "lava"),
+    "island": ("island", "tropical island", "beach"),
+    "mountain": ("mountain", "alpine", "peak", "ridge"),
+    "canyon": ("canyon", "gorge", "ravine", "cliffs"),
+    "hills": ("hill", "rolling hills", "meadow", "plains"),
+}
+LOCAL_TERRAIN_PARAMETERS = {
+    "volcano": {
+        "iterations": 52,
+        "noise_level": 0.20,
+        "smoothing_factor": 0.42,
+        "peak_bias": 1.22,
+        "center_bias": 0.96,
+    },
+    "island": {
+        "iterations": 40,
+        "noise_level": 0.16,
+        "smoothing_factor": 0.56,
+        "peak_bias": 0.82,
+        "center_bias": 0.93,
+    },
+    "mountain": {
+        "iterations": 48,
+        "noise_level": 0.24,
+        "smoothing_factor": 0.36,
+        "peak_bias": 1.18,
+        "center_bias": 0.34,
+    },
+    "canyon": {
+        "iterations": 44,
+        "noise_level": 0.19,
+        "smoothing_factor": 0.28,
+        "peak_bias": -0.62,
+        "center_bias": 0.18,
+    },
+    "hills": {
+        "iterations": 32,
+        "noise_level": 0.15,
+        "smoothing_factor": 0.68,
+        "peak_bias": 0.48,
+        "center_bias": 0.35,
+    },
+}
 
 
 @dataclass(frozen=True)
@@ -43,6 +87,8 @@ class TerrainPlannerResult:
     def source_label(self) -> str:
         if self.source == "azure_openai":
             return "Azure OpenAI"
+        if self.source == "local_planner":
+            return "Local Terrain Planner"
         return "Fallback Defaults"
 
     def generated_parameters(self) -> dict[str, Any]:
@@ -204,6 +250,105 @@ def _build_reasoning(
     ]
 
 
+def _detect_local_terrain_type(prompt: str) -> tuple[str, list[str]]:
+    normalized_prompt = prompt.lower()
+    best_terrain_type = DEFAULT_PRESET_KEY
+    best_score = 0
+    best_matches: list[str] = []
+
+    for terrain_type, keywords in LOCAL_KEYWORDS.items():
+        matches = [keyword for keyword in keywords if keyword in normalized_prompt]
+        score = len(matches)
+
+        if score > best_score:
+            best_terrain_type = terrain_type
+            best_score = score
+            best_matches = matches
+
+    return best_terrain_type, best_matches
+
+
+def _build_local_reasoning(
+    terrain_type: str,
+    matched_keywords: list[str],
+    iterations: int,
+    noise_level: float,
+    smoothing_factor: float,
+    peak_bias: float,
+    center_bias: float,
+) -> list[str]:
+    if matched_keywords:
+        keyword_text = ", ".join(matched_keywords)
+        detection_line = f"Detected {terrain_type} keywords in the prompt: {keyword_text}."
+    else:
+        detection_line = "No strong terrain keywords were found, so the local planner selected rolling hills as a balanced default."
+
+    terrain_specific_reasoning = {
+        "volcano": [
+            "Increased center bias to create a central peak.",
+            "Raised peak bias to emphasize elevated volcanic structure.",
+            "Used moderate smoothing to preserve steep slopes without losing the cone shape.",
+        ],
+        "island": [
+            "Increased center bias to keep the land mass concentrated near the middle.",
+            "Used moderate peak bias to lift the island interior above the shoreline.",
+            "Kept smoothing moderate so coastal transitions stay readable.",
+        ],
+        "mountain": [
+            "Raised peak bias to produce sharper ridges and high peaks.",
+            "Kept center bias lower so elevation spreads across the range instead of a single summit.",
+            "Reduced smoothing to preserve rugged terrain variation.",
+        ],
+        "canyon": [
+            "Used a negative elevation bias to deepen ravines and trench-like cuts.",
+            "Lowered smoothing to preserve steep cliff walls and sharp edges.",
+            "Kept center bias low so the canyon can cut broadly across the grid.",
+        ],
+        "hills": [
+            "Used balanced defaults for gentle rolling terrain.",
+            "Applied higher smoothing to create broad, soft contours.",
+            "Kept peak and center bias moderate for distributed elevation changes.",
+        ],
+    }
+
+    return [
+        detection_line,
+        f"Set the local automata plan to {iterations} iterations with noise level {noise_level:.2f}.",
+        *terrain_specific_reasoning[terrain_type],
+        f"Smoothing factor is {smoothing_factor:.2f} and center bias is {center_bias:.2f}.",
+        f"Peak bias is {peak_bias:.2f} for the selected {get_preset(terrain_type).name.lower()} terrain profile.",
+    ][:5]
+
+
+def _local_plan(prompt: str, message: str) -> TerrainPlannerResult:
+    terrain_type, matched_keywords = _detect_local_terrain_type(prompt)
+    parameters = LOCAL_TERRAIN_PARAMETERS[terrain_type]
+    reasoning = _build_local_reasoning(
+        terrain_type=terrain_type,
+        matched_keywords=matched_keywords,
+        iterations=parameters["iterations"],
+        noise_level=parameters["noise_level"],
+        smoothing_factor=parameters["smoothing_factor"],
+        peak_bias=parameters["peak_bias"],
+        center_bias=parameters["center_bias"],
+    )
+
+    return TerrainPlannerResult(
+        prompt=prompt,
+        terrain_type=terrain_type,
+        iterations=parameters["iterations"],
+        noise_level=parameters["noise_level"],
+        smoothing_factor=parameters["smoothing_factor"],
+        peak_bias=parameters["peak_bias"],
+        center_bias=parameters["center_bias"],
+        reasoning=reasoning,
+        source="local_planner",
+        status_message=message,
+        validation_issues=[],
+        raw_response=None,
+    )
+
+
 def _fallback_plan(prompt: str, message: str) -> TerrainPlannerResult:
     default_preset = get_preset(DEFAULT_PRESET_KEY)
     center_bias = DEFAULT_CENTER_BIAS[DEFAULT_PRESET_KEY]
@@ -329,9 +474,9 @@ def plan_terrain(prompt: str) -> TerrainPlannerResult:
     deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT")
 
     if not endpoint or not api_key or not deployment:
-        return _fallback_plan(
+        return _local_plan(
             normalized_prompt,
-            "Azure OpenAI environment variables are missing. Using safe default terrain parameters.",
+            "Azure OpenAI environment variables are missing. Local Terrain Planner generated terrain parameters from prompt analysis.",
         )
 
     try:
