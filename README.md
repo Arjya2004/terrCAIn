@@ -4,7 +4,9 @@
 <p align="center">
 AI-Powered Emergent Terrain Generation using Cellular Automata
 </p>
-
+<p align="center">
+🎥 Demo Video: https://youtu.be/pyDwM4o16hw
+</p>
 # Overview
 
 terrCAIn is an AI-powered creative application built with Streamlit that transforms natural-language terrain descriptions into emergent voxel-based 3D landscapes. The system combines AI-assisted terrain planning with Cellular Automata simulation to generate explainable procedural terrains.
